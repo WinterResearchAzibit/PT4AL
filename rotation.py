@@ -169,7 +169,7 @@ list_of_result = []
 for epoch in range(start_epoch, start_epoch+2):
     train(epoch)
     test_loss, test_acc, correct_per_file, file_list = test(epoch)
-    list_of_result[epoch] = file_list
+    list_of_result.append(file_list)
     scheduler.step()
 
 print(f"Are they same? {list_of_result[0]==list_of_result[1]}")
