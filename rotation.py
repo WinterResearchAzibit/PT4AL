@@ -107,10 +107,10 @@ def test(epoch):
     total = 0
 
     correct_per_file = [] # Correct prediction for each image file
+    file_list = []
 
     with torch.no_grad():
         for batch_idx, (inputs, inputs1, inputs2, inputs3, targets, targets1, targets2, targets3, path) in enumerate(testloader):
-            print(path)
             inputs, inputs1, targets, targets1 = inputs.to(device), inputs1.to(device), targets.to(device), targets1.to(device)
             inputs2, inputs3, targets2, targets3 = inputs2.to(device), inputs3.to(device), targets2.to(device), targets3.to(device)
             outputs = net(inputs)
@@ -140,7 +140,8 @@ def test(epoch):
             # Update list of correct predictions
             correct_per_file.extend(file_preds.tolist())
 
-            print(correct_per_file)
+            # Update the list of files
+            file_list.extend(path)
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -162,8 +163,15 @@ def test(epoch):
         torch.save(state, './checkpoint/rotation.pth')
         best_acc = acc
 
+    return test_loss/(batch_idx+1), 100.*correct/total, correct_per_file, file_list
 
-for epoch in range(start_epoch, start_epoch+3):
+list_of_result = []
+for epoch in range(start_epoch, start_epoch+2):
     train(epoch)
-    test(epoch)
+    test_loss, test_acc, correct_per_file, file_list = test(epoch)
+    list_of_result[epoch] = file_list
     scheduler.step()
+
+print(f"Are they same? {list_of_result[0]==list_of_result[1]}")
+print(list_of_result[0][:50])
+print(list_of_result[1][:50])
