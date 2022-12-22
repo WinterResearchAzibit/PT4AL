@@ -43,10 +43,10 @@ transform_test = transforms.Compose([
 ])
 
 trainset = RotationLoader(is_train=True, transform=transform_test)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True, num_workers=2)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True, num_workers=1)
 
 testset = RotationLoader(is_train=False,  transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False, num_workers=2)
+testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False, num_workers=1)
 
 # Model
 print('==> Building model..')
