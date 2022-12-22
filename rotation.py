@@ -54,7 +54,6 @@ net = ResNet18()
 net.linear = nn.Linear(512, 4)
 net = net.to(device)
 
-
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
@@ -106,8 +105,12 @@ def test(epoch):
     test_loss = 0
     correct = 0
     total = 0
+
+    correct_per_file = [] # Correct prediction for each image file
+
     with torch.no_grad():
         for batch_idx, (inputs, inputs1, inputs2, inputs3, targets, targets1, targets2, targets3, path) in enumerate(testloader):
+            print(path)
             inputs, inputs1, targets, targets1 = inputs.to(device), inputs1.to(device), targets.to(device), targets1.to(device)
             inputs2, inputs3, targets2, targets3 = inputs2.to(device), inputs3.to(device), targets2.to(device), targets3.to(device)
             outputs = net(inputs)
@@ -131,6 +134,14 @@ def test(epoch):
             correct += predicted2.eq(targets2).sum().item()
             correct += predicted3.eq(targets3).sum().item()
 
+            # Compute the correct predictions for each file
+            file_preds = predicted.eq(targets)*1 + predicted1.eq(targets1)*1 + predicted2.eq(targets2)*1 + predicted3.eq(targets3)*1
+
+            # Update list of correct predictions
+            correct_per_file.extend(file_preds.tolist())
+
+            print(correct_per_file)
+
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -152,7 +163,7 @@ def test(epoch):
         best_acc = acc
 
 
-for epoch in range(start_epoch, start_epoch+120):
+for epoch in range(start_epoch, start_epoch+3):
     train(epoch)
     test(epoch)
     scheduler.step()
