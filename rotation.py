@@ -17,6 +17,9 @@ from loader import Loader, RotationLoader
 from utils import progress_bar
 import numpy as np
 
+# Extra imports
+from datetime import datetime
+import pandas as pd
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -43,10 +46,10 @@ transform_test = transforms.Compose([
 ])
 
 trainset = RotationLoader(is_train=True, transform=transform_test)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True, num_workers=1)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=1)
 
 testset = RotationLoader(is_train=False,  transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False, num_workers=1)
+testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=1)
 
 # Model
 print('==> Building model..')
@@ -107,7 +110,6 @@ def test(epoch):
     total = 0
 
     correct_per_file = [] # Correct prediction for each image file
-    file_list = []
 
     with torch.no_grad():
         for batch_idx, (inputs, inputs1, inputs2, inputs3, targets, targets1, targets2, targets3, path) in enumerate(testloader):
@@ -140,9 +142,6 @@ def test(epoch):
             # Update list of correct predictions
             correct_per_file.extend(file_preds.tolist())
 
-            # Update the list of files
-            file_list.extend(path)
-
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -163,15 +162,22 @@ def test(epoch):
         torch.save(state, './checkpoint/rotation.pth')
         best_acc = acc
 
-    return test_loss/(batch_idx+1), 100.*correct/total, correct_per_file, file_list
+    return test_loss/(batch_idx+1), 100.*correct/total, correct_per_file
 
-list_of_result = []
-for epoch in range(start_epoch, start_epoch+2):
+# Store the confusion prediction after each epoch
+dataframe = pd.DataFrame({})
+
+total_epochs = start_epoch+2
+
+# Name to save dataframe
+file_name = datetime.now()
+filename = f'{file_name}_pred_uncertainty_exp_{total_epochs}.csv'
+
+for epoch in range(start_epoch, total_epochs):
     train(epoch)
-    test_loss, test_acc, correct_per_file, file_list = test(epoch)
-    list_of_result.append(file_list)
+    test_loss, test_acc, correct_per_file = test(epoch)
     scheduler.step()
-
-print(f"Are they same? {list_of_result[0]==list_of_result[1]}")
-print(list_of_result[0][:50])
-print(list_of_result[1][:50])
+    
+    # Insert and save after each epoch
+    dataframe[str(epoch)] = correct_per_file
+    dataframe.to_csv(filename)
