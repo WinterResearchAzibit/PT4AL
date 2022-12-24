@@ -34,27 +34,30 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 print('==> Preparing data..')
 transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
+    transforms.Resize((224, 224)),
+    # transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 transform_test = transforms.Compose([
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 trainset = RotationLoader(is_train=True, transform=transform_test)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=1)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=4)
 
 testset = RotationLoader(is_train=False,  transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=1)
+testloader = torch.utils.data.DataLoader(testset, batch_size=4, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
 net = ResNet18()
-net.linear = nn.Linear(512, 4)
+# net.linear = nn.Linear(512, 4)
+net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
 net = net.to(device)
 
 if device == 'cuda':
@@ -167,7 +170,7 @@ def test(epoch):
 # Store the confusion prediction after each epoch
 dataframe = pd.DataFrame({})
 
-total_epochs = start_epoch+2
+total_epochs = start_epoch+3
 
 # Name to save dataframe
 file_name = datetime.now()
@@ -177,7 +180,7 @@ for epoch in range(start_epoch, total_epochs):
     train(epoch)
     test_loss, test_acc, correct_per_file = test(epoch)
     scheduler.step()
-    
+
     # Insert and save after each epoch
     dataframe[str(epoch)] = correct_per_file
-    dataframe.to_csv(filename)
+    dataframe.to_csv(filename, index=False)
