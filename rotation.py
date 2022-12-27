@@ -34,36 +34,37 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 print('==> Preparing data..')
 transform_train = transforms.Compose([
-    transforms.Resize((224, 224)),
-    # transforms.RandomCrop(32, padding=4),
+    # transforms.Resize((224, 224)),
+    transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 transform_test = transforms.Compose([
-    transforms.Resize((224, 224)),
+    # transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 trainset = RotationLoader(is_train=True, transform=transform_test)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=4)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=4)
 
 testset = RotationLoader(is_train=False,  transform=transform_test)
-testloader = torch.utils.data.DataLoader(testset, batch_size=4, shuffle=False, num_workers=4)
+testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=4)
 
 # Model
 print('==> Building model..')
 net = ResNet18()
-# net.linear = nn.Linear(512, 4)
-net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
+net.linear = nn.Linear(512, 4)
+# net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
 net = net.to(device)
 
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
 
+criterion_for_each_element = nn.CrossEntropyLoss(reduction = 'none')
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30, 60, 90])
@@ -113,6 +114,7 @@ def test(epoch):
     total = 0
 
     correct_per_file = [] # Correct prediction for each image file
+    loss_per_file = []
 
     with torch.no_grad():
         for batch_idx, (inputs, inputs1, inputs2, inputs3, targets, targets1, targets2, targets3, path) in enumerate(testloader):
@@ -122,12 +124,13 @@ def test(epoch):
             outputs1 = net(inputs1)
             outputs2 = net(inputs2)
             outputs3 = net(inputs3)
-            loss1 = criterion(outputs, targets)
-            loss2 = criterion(outputs1, targets1)
-            loss3 = criterion(outputs2, targets2)
-            loss4 = criterion(outputs3, targets3)
+            loss1 = criterion_for_each_element(outputs, targets)
+            loss2 = criterion_for_each_element(outputs1, targets1)
+            loss3 = criterion_for_each_element(outputs2, targets2)
+            loss4 = criterion_for_each_element(outputs3, targets3)
             loss = (loss1+loss2+loss3+loss4)/4.
-            test_loss += loss.item()
+            loss_per_file.extend(loss.tolist())
+            test_loss += loss.mean().item()
             _, predicted = outputs.max(1)
             _, predicted1 = outputs1.max(1)
             _, predicted2 = outputs2.max(1)
@@ -142,8 +145,10 @@ def test(epoch):
             # Compute the correct predictions for each file
             file_preds = predicted.eq(targets)*1 + predicted1.eq(targets1)*1 + predicted2.eq(targets2)*1 + predicted3.eq(targets3)*1
 
+            #loss_preds = criterion_for_each_element(outputs, targets) + criterion_for_each_element(outputs1, targets1) + criterion_for_each_element(outputs2, targets2) + criterion_for_each_element(outputs3, targets3)
             # Update list of correct predictions
             correct_per_file.extend(file_preds.tolist())
+
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -165,22 +170,28 @@ def test(epoch):
         torch.save(state, './checkpoint/rotation.pth')
         best_acc = acc
 
-    return test_loss/(batch_idx+1), 100.*correct/total, correct_per_file
+    return test_loss/(batch_idx+1), 100.*correct/total, correct_per_file, loss_per_file
 
 # Store the confusion prediction after each epoch
 dataframe = pd.DataFrame({})
+dataframe_loss = pd.DataFrame({})
 
-total_epochs = start_epoch+3
+total_epochs = start_epoch+52
 
 # Name to save dataframe
 file_name = datetime.now()
-filename = f'{file_name}_pred_uncertainty_exp_{total_epochs}.csv'
+filename_conf = f'{file_name}_pred_uncertainty_exp_{total_epochs}.csv'
+filename_loss = f'{file_name}_loss_exp_{total_epochs}.csv'
+
 
 for epoch in range(start_epoch, total_epochs):
-    train(epoch)
-    test_loss, test_acc, correct_per_file = test(epoch)
+    # train(epoch)
+    test_loss, test_acc, correct_per_file, loss_per_file = test(epoch)
     scheduler.step()
 
     # Insert and save after each epoch
     dataframe[str(epoch)] = correct_per_file
-    dataframe.to_csv(filename, index=False)
+    dataframe.to_csv(filename_conf, index=False)
+
+    dataframe_loss[str(epoch)] = loss_per_file
+    dataframe_loss.to_csv(filename_loss, index=False)
