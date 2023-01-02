@@ -3,13 +3,22 @@
     - msr_init: net parameter initialization.
     - progress_bar: progress bar mimic xlua.progress.
 '''
-import os
+import os, random
 import sys
 import time
 import math
 
+import torch
 import torch.nn as nn
 import torch.nn.init as init
+
+def makeDeterministic(random_seed):
+    # random_seed=42
+    random.seed(random_seed)
+    np.random.seed(random_seed)
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
+    torch.backends.cudnn.deterministic = True
 
 
 def get_mean_and_std(dataset):

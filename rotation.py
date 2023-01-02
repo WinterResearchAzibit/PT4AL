@@ -14,12 +14,17 @@ import random
 
 from models import *
 from loader import Loader, RotationLoader
-from utils import progress_bar
+from utils import progress_bar, makeDeterministic
 import numpy as np
 
 # Extra imports
 from datetime import datetime
 import pandas as pd
+
+random_seed = 10
+total_epochs = 2
+
+makeDeterministic(random_seed)
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
@@ -175,8 +180,6 @@ def test(epoch):
 # Store the confusion prediction after each epoch
 dataframe = pd.DataFrame({})
 dataframe_loss = pd.DataFrame({})
-
-total_epochs = start_epoch+52
 
 # Name to save dataframe
 file_name = datetime.now()

@@ -2,6 +2,12 @@
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/using-self-supervised-pretext-tasks-for/active-learning-on-cifar10-10000)](https://paperswithcode.com/sota/active-learning-on-cifar10-10000?p=using-self-supervised-pretext-tasks-for)
 
 # Update Note
+
+- We solved all problems. The issue is that the epoch of the rotation prediction task was supposed to run only 15 epochs, but it was written incorrectly as 120 epochs. Sorry for the inconvenience. [2023.01.02]
+- Add Cold Start Experiments
+
+```
+[solved problem]
 We are redoing the CIFAR10 experiment.
 
 The current reproduction result is the performance of 91 to 93.
@@ -9,7 +15,7 @@ The current reproduction result is the performance of 91 to 93.
 We will re-tune the code again for stable performance in the near future.
 
 The rest of the experiments confirmed that there was no problem with reproduction.
-
+```
 Sorry for the inconvenience.
 ## Experiment Setting:
 - CIFAR10 (downloaded and saved in ```./DATA```
@@ -45,6 +51,19 @@ To evaluate on active learning task:
 ```
 python main.py
 ```
+
+To mask cold start experiments (random)
+```
+python main_random.py
+```
+![image](https://user-images.githubusercontent.com/33244972/210195074-8cc85f97-8a20-4aac-b61b-034e91694788.png)
+
+
+To mask cold start experiments (PT4AL)
+```
+python main_pt4al.py
+```
+![image](https://user-images.githubusercontent.com/33244972/210192180-6158a4ea-052b-4313-baf9-0048aaa5746f.png)
 
 ## Citation
 If you use our code in your research, or find our work helpful, please consider citing us with the bibtex below:
