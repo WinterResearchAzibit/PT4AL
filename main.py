@@ -141,12 +141,12 @@ def get_plabels(net, samples, cycle):
         if len(items) == 100:
             sample1k.extend(items)
         else:
-            # supplement samples from remaining 
+            # supplement samples from remaining
             sample1k.extend(items)
             add = 100 - len(items)
             sample1k.extend(remaining[:add])
             remaining = remaining[add:]
-    
+
     return sample1k
 
 # confidence sampling (pseudo labeling)
@@ -167,7 +167,7 @@ def get_plabels2(net, samples, cycle):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = net(inputs)
             scores, predicted = outputs.max(1)
-            # save top1 confidence score 
+            # save top1 confidence score
             outputs = F.normalize(outputs, dim=1)
             probs = F.softmax(outputs, dim=1)
             top1_scores.append(probs[0][predicted.item()])
@@ -204,8 +204,8 @@ def get_classdist(samples):
 
 if __name__ == '__main__':
     labeled = []
-        
-    CYCLES = 10
+
+    CYCLES = 1
     for cycle in range(CYCLES):
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(net.parameters(), lr=0.1,momentum=0.9, weight_decay=5e-4)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         # open 5k batch (sorted low->high)
         with open(f'./loss/batch_{cycle}.txt', 'r') as f:
             samples = f.readlines()
-            
+
         if cycle > 0:
             print('>> Getting previous checkpoint')
             # prevnet = ResNet18().to(device)
@@ -230,7 +230,8 @@ if __name__ == '__main__':
         else:
             # first iteration: sample 1k at even intervals
             samples = np.array(samples)
-            sample1k = samples[[j*5 for j in range(1000)]]
+            sample1k = np.array(samples)
+            # sample1k = samples[[j*5 for j in range(1000)]]
         # add 1k samples to labeled set
         labeled.extend(sample1k)
         print(f'>> Labeled length: {len(labeled)}')

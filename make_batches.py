@@ -12,6 +12,7 @@ import os
 import argparse
 import random
 import numpy as np
+import pandas as pd
 
 from models import *
 from loader import Loader, RotationLoader
@@ -49,6 +50,8 @@ def test(epoch):
     test_loss = 0
     correct = 0
     total = 0
+    correct_per_file = []
+    test_loss_list = []
     with torch.no_grad():
         for batch_idx, (inputs, inputs1, inputs2, inputs3, targets, targets1, targets2, targets3, path) in enumerate(testloader):
             inputs, inputs1, targets, targets1 = inputs.to(device), inputs1.to(device), targets.to(device), targets1.to(device)
@@ -64,46 +67,71 @@ def test(epoch):
             loss = (loss1+loss2+loss3+loss4)/4.
             test_loss += loss.item()
             _, predicted = outputs.max(1)
+            _, predicted1 = outputs1.max(1)
+            _, predicted2 = outputs2.max(1)
+            _, predicted3 = outputs3.max(1)
+
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
+            # Compute the correct predictions for each file
+            file_preds = predicted.eq(targets)*1 + predicted1.eq(targets1)*1 + predicted2.eq(targets2)*1 + predicted3.eq(targets3)*1
+
             loss = loss.item()
             s = str(float(loss)) + '_' + str(path[0]) + "\n"
+
+            # Update list of correct predictions
+            correct_per_file.extend(file_preds.tolist())
+            loss_value = str(float(loss))
+            test_loss_list.append(loss_value)
 
             with open('./rotation_loss.txt', 'a') as f:
                 f.write(s)
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
+    return correct_per_file, test_loss_list
+
 if __name__ == "__main__":
-    test(1)
-    with open('./rotation_loss.txt', 'r') as f:
-        losses = f.readlines()
+    # Store the confusion prediction and loss after each epoch
+    dataframe_loss = pd.DataFrame({})
+    dataframe_conf = pd.DataFrame({})
 
-    loss_1 = []
-    name_2 = []
+    correct_per_file, loss = test(1)
 
-    for j in losses:
-        loss_1.append(j[:-1].split('_')[0])
-        name_2.append(j[:-1].split('_')[1])
+    # Insert and save after each epoch
+    dataframe_loss[str(0)] = loss
+    dataframe_loss.to_csv('loss_values.csv', index=False)
 
-    s = np.array(loss_1)
-    sort_index = np.argsort(s)
-    x = sort_index.tolist()
-    x.reverse()
-    sort_index = np.array(x) # convert to high loss first
-
-    if not os.path.isdir('loss'):
-        os.mkdir('loss')
-    for i in range(10):
-        # sample minibatch from unlabeled pool 
-        sample5000 = sort_index[i*5000:(i+1)*5000]
-        # sample1000 = sample5000[[j*5 for j in range(1000)]]
-        b = np.zeros(10)
-        for jj in sample5000:
-            b[int(name_2[jj].split('/')[-2])] +=1
-        print(f'{i} Class Distribution: {b}')
-        s = './loss/batch_' + str(i) + '.txt'
-        for k in sample5000:
-            with open(s, 'a') as f:
-                f.write(name_2[k]+'\n')
+    dataframe_conf[str(0)] = correct_per_file
+    dataframe_conf.to_csv('conf_values.csv', index=False)
+    # with open('./rotation_loss.txt', 'r') as f:
+    #     losses = f.readlines()
+    #
+    # loss_1 = []
+    # name_2 = []
+    #
+    # for j in losses:
+    #     loss_1.append(j[:-1].split('_')[0])
+    #     name_2.append(j[:-1].split('_')[1])
+    #
+    # s = np.array(loss_1)
+    # sort_index = np.argsort(s)
+    # x = sort_index.tolist()
+    # x.reverse()
+    # sort_index = np.array(x) # convert to high loss first
+    #
+    # if not os.path.isdir('loss'):
+    #     os.mkdir('loss')
+    # for i in range(10):
+    #     # sample minibatch from unlabeled pool
+    #     sample5000 = sort_index[i*5000:(i+1)*5000]
+    #     # sample1000 = sample5000[[j*5 for j in range(1000)]]
+    #     b = np.zeros(10)
+    #     for jj in sample5000:
+    #         b[int(name_2[jj].split('/')[-2])] +=1
+    #     print(f'{i} Class Distribution: {b}')
+    #     s = './loss/batch_' + str(i) + '.txt'
+    #     for k in sample5000:
+    #         with open(s, 'a') as f:
+    #             f.write(name_2[k]+'\n')

@@ -185,7 +185,7 @@ filename_loss = f'{file_name}_loss_exp_{total_epochs}.csv'
 
 
 for epoch in range(start_epoch, total_epochs):
-    # train(epoch)
+    train(epoch)
     test_loss, test_acc, correct_per_file, loss_per_file = test(epoch)
     scheduler.step()
 
