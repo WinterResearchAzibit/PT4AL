@@ -8,10 +8,45 @@ import sys
 import time
 import math
 import numpy as np
+import pandas as pd
 
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+
+def get_selected_items(result_file, epoch):
+    '''
+    result_file - csv file containing the loss or confusion per epoch
+    '''
+
+    # Get the file list
+    file_list = glob.glob('./DATA/train/*/*')
+
+    # Read the confusion or loss file
+    df = pd.read_csv(result_file)
+
+    #Sum over all epochs for each file
+    score_list = df[str(epoch)].mean(axis = 1).tolist() #df.sum(axis = 1).tolist()
+
+    # New dataframe to hold files and their scores
+    new_df = pd.DataFrame({})
+    new_df['0'] = score_list
+    new_df['1'] = file_list
+
+    # Sort in descending order and return the file names
+    first_sample = new_df.sort_values('0', ascending=False)['1']
+
+    # Collect the Distribution of the selected data
+    class_dist = {}
+    for item in first_sample:
+        class_name = item.split('/')[-2]
+        class_dist[class_name] = class_dist.get(class_name, 0) + 1
+
+    # Print the Distribution
+    print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
+
+    # Return the selected files
+    return first_sample
 
 def makeDeterministic(random_seed):
     # random_seed=42
@@ -19,8 +54,9 @@ def makeDeterministic(random_seed):
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed)
+    torch.cuda.manual_seed_all(random_seed)
     torch.backends.cudnn.deterministic = True
-
+    torch.backends.cudnn.benchmark = False
 
 def get_mean_and_std(dataset):
     '''Compute the mean and std value of dataset.'''
