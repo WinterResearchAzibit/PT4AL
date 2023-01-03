@@ -49,15 +49,24 @@ for random_seed in random_seeds:
         ])
 
         active_confusion_true_or_false = True #epoch = 0
-        epoch = 0 if active_confusion_true_or_false else 14
-        all_samples = get_selected_items(result_file, epoch)
+        epoch_to_use = 0 if active_confusion_true_or_false else 14
+        all_samples = get_selected_items(result_file, epoch_to_use)
 
         # Select the number of samples needed and uniform selection ratio
-        range_to_check = 50000 if active_confusion_true_or_false else: 5000
-        uniform_selection_ratio = range_to_check / number_of_samples_to_select
+        range_to_check = 50000 if active_confusion_true_or_false else 5000
+        uniform_selection_ratio = int(range_to_check / number_of_samples_to_select)
         selected_samples = all_samples[:range_to_check][::uniform_selection_ratio]
 
-        print(f"Number of samples selected: {len(selected_samples)}")
+        # Collect the Distribution of the selected data
+        class_dist = {}
+        for item in selected_samples:
+            class_name = item.split('/')[-2]
+            class_dist[class_name] = class_dist.get(class_name, 0) + 1
+
+        # Print the Distribution
+        print("Class distributions for selected samples !!!")
+        print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
+
 
         trainset = Loader_Cold(is_train=True, transform=transform_train, train_list = selected_samples)
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=4)

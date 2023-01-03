@@ -94,7 +94,8 @@ class Loader_Cold(Dataset):
 
     def __getitem__(self, idx):
         if self.is_train ==True:
-            img = cv2.imread(self.img_path[idx][:-1])
+            img = cv2.imread(self.img_path[idx])
+            # img = cv2.imread(self.img_path[idx][:-1])
         else:
             img = cv2.imread(self.img_path[idx])
         img = Image.fromarray(img)

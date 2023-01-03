@@ -9,6 +9,7 @@ import time
 import math
 import numpy as np
 import pandas as pd
+import glob as glob
 
 import torch
 import torch.nn as nn
@@ -26,7 +27,7 @@ def get_selected_items(result_file, epoch):
     df = pd.read_csv(result_file)
 
     #Sum over all epochs for each file
-    score_list = df[str(epoch)].mean(axis = 1).tolist() #df.sum(axis = 1).tolist()
+    score_list = df[[str(epoch)]].sum(axis = 1).tolist() #df.sum(axis = 1).tolist()
 
     # New dataframe to hold files and their scores
     new_df = pd.DataFrame({})
@@ -46,7 +47,7 @@ def get_selected_items(result_file, epoch):
     print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
 
     # Return the selected files
-    return first_sample
+    return first_sample.tolist()
 
 def makeDeterministic(random_seed):
     # random_seed=42
