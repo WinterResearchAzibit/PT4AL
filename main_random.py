@@ -16,7 +16,7 @@ import random
 from models import *
 from utils import progress_bar, makeDeterministic
 from loader import Loader, Loader2
-
+import numpy as np
 import Config as Config
 
 random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
