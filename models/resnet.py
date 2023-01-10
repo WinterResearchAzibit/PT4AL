@@ -10,7 +10,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import utils as utils
 
+utils.makeDeterministic(70)
 class BasicBlock(nn.Module):
     expansion = 1
 

@@ -29,6 +29,25 @@ def get_selected_items(result_file, epoch):
     #Sum over all epochs for each file
     score_list = df[[str(epoch)]].sum(axis = 1).tolist() #df.sum(axis = 1).tolist()
 
+    # Consider result as string
+    new_score_list = []
+    for item in score_list:
+        new_score_list.append(str(item))
+    score_list = new_score_list
+
+    # Setup code as done in PT4AL
+    s = np.array(score_list)
+    sort_index = np.argsort(s)
+    x = sort_index.tolist()
+    x.reverse()
+    sort_index = np.array(x)
+    # print(f"Sorted index: {sort_index[:10]}")
+    sorted_list_result = []
+
+    # Sort files based on sort_index
+    for item in sort_index:
+        sorted_list_result.append(file_list[item])
+
     # New dataframe to hold files and their scores
     new_df = pd.DataFrame({})
     new_df['0'] = score_list
@@ -36,18 +55,21 @@ def get_selected_items(result_file, epoch):
 
     # Sort in descending order and return the file names
     first_sample = new_df.sort_values('0', ascending=False)['1']
-
-    # Collect the Distribution of the selected data
-    class_dist = {}
-    for item in first_sample:
-        class_name = item.split('/')[-2]
-        class_dist[class_name] = class_dist.get(class_name, 0) + 1
-
-    # Print the Distribution
-    print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
-
-    # Return the selected files
-    return first_sample.tolist()
+    # print(f"Sorted list: {sorted_list_result[:10]}")
+    # print(f"First sample: {first_sample[:10]}")
+    # print(f"Top 10 in second sorted: {first_sample[:10]}")
+    # # Collect the Distribution of the selected data
+    # class_dist = {}
+    # for item in first_sample:
+    #     class_name = item.split('/')[-2]
+    #     class_dist[class_name] = class_dist.get(class_name, 0) + 1
+    #
+    # # Print the Distribution
+    # print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
+    #
+    # # Return the selected files
+    # return first_sample.tolist()
+    return sorted_list_result
 
 def makeDeterministic(random_seed):
     # random_seed=42

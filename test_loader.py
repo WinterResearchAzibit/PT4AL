@@ -1,5 +1,6 @@
 import utils as utils
-utils.makeDeterministic(70)
+
+# utils.makeDeterministic(70)
 
 import glob
 import os
@@ -11,7 +12,6 @@ import torchvision.transforms as transforms
 import numpy as np
 import random
 import cv2
-
 
 class RotationLoader(Dataset):
     def __init__(self, is_train=True, transform=None, path='./DATA'):
@@ -80,16 +80,25 @@ class Loader2(Dataset):
         return img, label
 
 class Loader_Cold(Dataset):
-    def __init__(self, is_train=True, transform=None, path='./DATA', train_list=None):
+    def __init__(self, is_train=True, transform=None, path='./DATA'):
         self.classes = 10
         self.is_train = is_train
         self.transform = transform
-        # with open('/workspace/A/PT4AL/loss/batch_5.txt', 'r') as f:
-        #     self.list = f.readlines()
-        # self.list = [self.list[i*5] for i in range(1000)]
+        with open('./loss/batch_0.txt', 'r') as f:
+            self.list = f.readlines()
+        self.list = [self.list[i*5] for i in range(1000)]
+
+        # Collect the Distribution of the selected data
+        class_dist = {}
+        for item in self.list:
+            class_name = item.split('/')[-2]
+            class_dist[class_name] = class_dist.get(class_name, 0) + 1
+
         if self.is_train==True: # train
-            # self.img_path = self.list
-            self.img_path = train_list
+            self.img_path = self.list
+            # Print the Distribution
+            print(f"There are {len(class_dist)} classes and their distributions are: {(class_dist)}")
+
         else:
             self.img_path = glob.glob('./DATA/test/*/*')
 
@@ -98,8 +107,7 @@ class Loader_Cold(Dataset):
 
     def __getitem__(self, idx):
         if self.is_train ==True:
-            img = cv2.imread(self.img_path[idx])
-            # img = cv2.imread(self.img_path[idx][:-1])
+            img = cv2.imread(self.img_path[idx][:-1])
         else:
             img = cv2.imread(self.img_path[idx])
         img = Image.fromarray(img)
