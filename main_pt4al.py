@@ -20,7 +20,7 @@ from datetime import datetime
 import Config as Config
 import numpy as np
 
-active_confusion_true_or_false = False #epoch = 0
+active_confusion_true_or_false = True #epoch = 0
 file_extra_info = 'conf' if active_confusion_true_or_false else 'loss'
 random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
 result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
