@@ -25,8 +25,8 @@ import pandas as pd
 import Config as Config
 import numpy as np
 
-random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
-DATASET_NAME = 'CIFAR10'
+random_seeds = [100]#[100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+DATASET_NAME = 'PathMNIST'
 TOTAL_EPOCHS = Config.pretraining_epochs
 file_name = datetime.now()
 
@@ -43,7 +43,7 @@ for random_seed in random_seeds:
     # Data
     print('==> Preparing data..')
     transform_train = transforms.Compose([
-        # transforms.Resize((224, 224)),
+        #transforms.Resize((28, 28)),
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
@@ -51,7 +51,7 @@ for random_seed in random_seeds:
     ])
 
     transform_test = transforms.Compose([
-        # transforms.Resize((224, 224)),
+        #transforms.Resize((28, 28)),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
@@ -74,7 +74,7 @@ for random_seed in random_seeds:
     print('==> Building model..')
     net = ResNet18()
     net.linear = nn.Linear(512, 4)
-    # net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
+    #net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
     net = net.to(device)
 
     if device == 'cuda':
@@ -205,9 +205,9 @@ for random_seed in random_seeds:
     dataframe_filenames = pd.DataFrame({})
 
     # Name to save dataframe
-    filename_conf = f'{DATASET_NAME}_{file_name}_conf_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
-    filename_loss = f'{DATASET_NAME}_{file_name}_loss_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
-    filenames = f'{DATASET_NAME}_{file_name}_filenames_{TOTAL_EPOCHS}_exp{random_seed}.csv'
+    filename_conf = f'{DATASET_NAME}_2023-01-15 20:23:12.648987_conf_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
+    filename_loss = f'{DATASET_NAME}_2023-01-15 20:23:12.648987_loss_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
+    filenames = f'{DATASET_NAME}_2023-01-15 20:23:12.648987_filenames_{TOTAL_EPOCHS}_exp{random_seed}.csv'
 
 
     for epoch in range(start_epoch, TOTAL_EPOCHS):

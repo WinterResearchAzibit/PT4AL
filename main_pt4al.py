@@ -20,7 +20,7 @@ from datetime import datetime
 import Config as Config
 import numpy as np
 
-active_confusion_true_or_false = False #epoch = 0
+active_confusion_true_or_false = True #epoch = 0
 file_extra_info = 'conf' if active_confusion_true_or_false else 'loss'
 random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
 result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
@@ -32,7 +32,7 @@ for random_seed in random_seeds:
     makeDeterministic(random_seed)
 
     # Choose specific file to run
-    result_file = f'CIFAR10_2023-01-08 20:23:12.648987_{file_extra_info}_preds_15_exp{random_seed}.csv'
+    result_file = f'PathMNIST_2023-01-12 20:23:12.648987_{file_extra_info}_preds_15_exp{random_seed}.csv'
 
     # Try all these samples
     list_of_no_of_samples = [100, 200, 500, 1000, 5000]
@@ -68,9 +68,9 @@ for random_seed in random_seeds:
         all_samples = get_selected_items(result_file, epoch_to_use)
 
         # Select the number of samples needed and uniform selection ratio
-        range_to_check = 50000 if active_confusion_true_or_false else 5000
+        range_to_check = 89996 if active_confusion_true_or_false else 9000
         uniform_selection_ratio = int(range_to_check / number_of_samples_to_select)
-        selected_samples = all_samples[:range_to_check][::uniform_selection_ratio]
+        selected_samples = all_samples[:range_to_check][::uniform_selection_ratio][:number_of_samples_to_select]
 
         # Collect the Distribution of the selected data
         class_dist = {}
@@ -99,6 +99,7 @@ for random_seed in random_seeds:
         # Model
         print('==> Building model..')
         net = ResNet18()
+        net.linear = nn.Linear(512, 9)
         net = net.to(device)
 
         if device == 'cuda':
