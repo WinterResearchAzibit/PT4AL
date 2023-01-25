@@ -27,9 +27,6 @@ import pandas as pd
 import Config as Config
 import numpy as np
 
-# To enable reproducibility, selected random seeds are used.
-random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
-
 # To save results, use dataset name and current time
 DATASET_NAME = 'cifar10'
 file_name = datetime.now()
@@ -38,7 +35,7 @@ file_name = datetime.now()
 TOTAL_EPOCHS = Config.pretraining_epochs
 
 # Run experiments with different random seeds
-for random_seed in random_seeds:
+for random_seed in Config.random_seeds:
 
     # Initialize with new random seed
     makeDeterministic(random_seed)
@@ -50,24 +47,8 @@ for random_seed in random_seeds:
 
     # Data
     print('==> Preparing data..')
-    transform_train = transforms.Compose([
-        # Depending on the dataset used and the size of images, we
-        # use 28*28 for the medical images and 32 for CIFAR10 and CIFAR100
-        # transforms.Resize((28, 28)),
-        transforms.RandomCrop(32, padding=4),
-
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    transform_test = transforms.Compose([
-        # Applying size 28*28 for medical image scenario
-        # The resize is removed if not medical dataset
-        # transforms.Resize((28, 28)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    transform_train = Config.transform_train
+    transform_test = Config.transform_test
 
     # Introducing this method to ensure that the testloader is deterministic
     # Check - https://pytorch.org/docs/stable/notes/randomness.html#dataloader
@@ -231,7 +212,6 @@ for random_seed in random_seeds:
     filename_conf = f'{DATASET_NAME}_{file_name}_conf_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
     filename_loss = f'{DATASET_NAME}_{file_name}_loss_preds_{TOTAL_EPOCHS}_exp{random_seed}.csv'
     filenames = f'{DATASET_NAME}_{file_name}_filenames_{TOTAL_EPOCHS}_exp{random_seed}.csv'
-
 
     for epoch in range(start_epoch, TOTAL_EPOCHS):
         train(epoch)

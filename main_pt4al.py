@@ -19,12 +19,14 @@ import pandas as pd
 from datetime import datetime
 import Config as Config
 import numpy as np
+import glob as glob
 
 active_confusion_true_or_false = True #epoch = 0
 file_extra_info = 'conf' if active_confusion_true_or_false else 'loss'
 random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
 result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
 file_name_with_date = f"{datetime.now()}_{str(active_confusion_true_or_false)}"
+ # Number of images in training dataset
 
 for random_seed in random_seeds:
 
@@ -32,7 +34,7 @@ for random_seed in random_seeds:
     makeDeterministic(random_seed)
 
     # Choose specific file to run
-    result_file = f'CIFAR10_2023-01-08 20:23:12.648987_{file_extra_info}_preds_15_exp{random_seed}.csv'
+    result_file = f'{Config.rotation_saved_file}_{file_extra_info}_preds_{Config.pretraining_epochs}_exp{random_seed}.csv'
 
     # Try all these samples
     list_of_no_of_samples = [100, 200, 500, 1000, 5000]
@@ -52,26 +54,15 @@ for random_seed in random_seeds:
 
         # Data
         print('==> Preparing data..')
-        transform_train = transforms.Compose([
-            # transforms.Resize((28, 28)),
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-        transform_test = transforms.Compose([
-            # transforms.Resize((28, 28)),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
+        transform_train = Config.transform_train
+        transform_test = Config.transform_test
 
         # epoch_to_use = 0 if active_confusion_true_or_false else Config.pretraining_epochs - 1
         epoch_to_use = Config.pretraining_epochs - 1
         all_samples = get_selected_items(result_file, epoch_to_use)
 
         # Select the number of samples needed and uniform selection ratio
-        range_to_check = 50000 if active_confusion_true_or_false else 5000
+        range_to_check = Config.images_in_dataset if active_confusion_true_or_false else Config.images_in_dataset / 10
         # range_to_check = 11959 if active_confusion_true_or_false else 1200
         range_to_check = max(number_of_samples_to_select, range_to_check)
         uniform_selection_ratio = int(range_to_check / number_of_samples_to_select)
@@ -104,7 +95,7 @@ for random_seed in random_seeds:
         # Model
         print('==> Building model..')
         net = ResNet18()
-        # net.linear = nn.Linear(512, 10)
+        net.linear = nn.Linear(512, Config.downstream_classification_classes)
         net = net.to(device)
 
 
