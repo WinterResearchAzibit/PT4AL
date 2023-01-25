@@ -1,4 +1,7 @@
-# cold start ex
+'''
+    Cold-start experiment for randomly selecting the initial subset.
+    Random items are selected based on the size of the initial subset
+'''
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -21,16 +24,23 @@ import pandas as pd
 import Config as Config
 from datetime import datetime
 
-random_seeds = [40] #[100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+# To ensure reproducibility, we used specific random seeds for each experiment
+random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+
+# Dataframe to store the results of each experiment
 result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
+
+# Adding a time stamp for each result
 file_name_with_date = datetime.now()
+
+# Perform each experiment using the random seed
 for random_seed in random_seeds:
 
     # Make experiment deterministic
     makeDeterministic(random_seed)
 
-    # Try all these samples
-    list_of_no_of_samples = [1000, 5000] #[100, 200, 500, 1000, 5000]
+    # Try all these initial subset sizes during each experiment
+    list_of_no_of_samples = [100, 200, 500, 1000, 5000]
 
     # Select number of samples for random case
     for number_of_samples_to_select in list_of_no_of_samples:
@@ -47,6 +57,9 @@ for random_seed in random_seeds:
         # Data
         print('==> Preparing data..')
         transform_train = transforms.Compose([
+
+            # Depending on the dataset used and the size of images, we
+            # use 28*28 for the medical images and 32 for CIFAR10 and CIFAR100
             transforms.Resize((28, 28)),
             # transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
@@ -55,39 +68,59 @@ for random_seed in random_seeds:
         ])
 
         transform_test = transforms.Compose([
+            # Applying size 28*28 for medical image scenario
+            # The resize is removed if not medical dataset
             transforms.Resize((28, 28)),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        indices = list(range(11959))
+        # Depending on the dataset, the number of training images
+        # from which the random selection is to be made
+        dataset_training_size = 11959
+        indices = list(range(dataset_training_size))
+
+        # Shuffle the indices
         random.shuffle(indices)
+
+        # Select the specified number of random samples
         labeled_set = indices[:number_of_samples_to_select]
 
+        # Introducing this method to ensure that the testloader is deterministic
         def seed_worker(worker_id):
             worker_seed = random_seed
             np.random.seed(worker_seed)
             random.seed(worker_seed)
 
+        # The following two lines are needed to make testloader deterministic
         g = torch.Generator()
         g.manual_seed(random_seed)
 
         trainset = Loader(is_train=True, transform=transform_train)
-        trainloader = torch.utils.data.DataLoader(trainset, batch_size=Config.batch_size, num_workers=Config.no_of_workers, sampler=SubsetRandomSampler(labeled_set))
+        trainloader = torch.utils.data.DataLoader(trainset,
+        batch_size=Config.batch_size, num_workers=Config.no_of_workers,
+        sampler=SubsetRandomSampler(labeled_set))
 
         testset = Loader(is_train=False, transform=transform_test)
-        testloader = torch.utils.data.DataLoader(testset, batch_size=Config.batch_size, shuffle=False, num_workers=Config.no_of_workers, worker_init_fn=seed_worker,generator=g)
+        testloader = torch.utils.data.DataLoader(testset,
+        batch_size=Config.batch_size, shuffle=False,
+        num_workers=Config.no_of_workers, worker_init_fn=seed_worker,
+        generator=g)
 
         # Model
         print('==> Building model..')
         net = ResNet18()
-        net.linear = nn.Linear(512, 8)
+
+        # Depending on the number of classes in the dataset.
+        number_of_classes_in_dataset = 8
+        net.linear = nn.Linear(512, number_of_classes_in_dataset)
         net = net.to(device)
 
         if device == 'cuda':
             net = torch.nn.DataParallel(net)
             # cudnn.benchmark = True
 
+        # Use parameters from PT4AL
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(net.parameters(), lr=0.1,momentum=0.9, weight_decay=5e-4)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[160])
@@ -123,9 +156,12 @@ for random_seed in random_seeds:
             best_train_loss = train_loss/(batch_idx+1)
 
         def test(epoch):
+
+            # Track accuracy and loss for training and test
             global best_acc
             global best_test_loss
 
+            # These values are updated based on the best_acc
             global best_train_acc
             global best_train_loss
 
@@ -136,7 +172,7 @@ for random_seed in random_seeds:
             test_loss = 0
             correct = 0
             total = 0
-            state = torch.get_rng_state()
+            state = torch.get_rng_state() # Added for reproducibility
             with torch.no_grad():
                 for batch_idx, (inputs, targets) in enumerate(testloader):
                     inputs, targets = inputs.to(device), targets.to(device)
@@ -151,7 +187,7 @@ for random_seed in random_seeds:
                     progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                                  % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
-            torch.set_rng_state(state)
+            torch.set_rng_state(state) # Added for reproducibility
             # Save checkpoint.
             acc = 100.*correct/total
             test_loss_result = test_loss/(batch_idx+1)
