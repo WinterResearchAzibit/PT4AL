@@ -87,6 +87,7 @@ for random_seed in random_seeds:
         labeled_set = indices[:number_of_samples_to_select]
 
         # Introducing this method to ensure that the testloader is deterministic
+        # Check - https://pytorch.org/docs/stable/notes/randomness.html#dataloader
         def seed_worker(worker_id):
             worker_seed = random_seed
             np.random.seed(worker_seed)

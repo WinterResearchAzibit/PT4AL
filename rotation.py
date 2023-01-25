@@ -1,4 +1,6 @@
-'''Train CIFAR10 with PyTorch.'''
+'''
+    Trains the rotation pretext task.
+'''
 from utils import progress_bar, makeDeterministic
 
 import torch
@@ -25,10 +27,15 @@ import pandas as pd
 import Config as Config
 import numpy as np
 
-random_seeds = [100] #[100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+# To enable reproducibility, selected random seeds are used.
+random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+
+# To save results, use dataset name and current time
 DATASET_NAME = 'cifar10'
-TOTAL_EPOCHS = Config.pretraining_epochs
 file_name = datetime.now()
+
+# Number of epochs to run
+TOTAL_EPOCHS = Config.pretraining_epochs
 
 # Run experiments with different random seeds
 for random_seed in random_seeds:
@@ -36,6 +43,7 @@ for random_seed in random_seeds:
     # Initialize with new random seed
     makeDeterministic(random_seed)
 
+    # Default setup values
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
@@ -43,42 +51,57 @@ for random_seed in random_seeds:
     # Data
     print('==> Preparing data..')
     transform_train = transforms.Compose([
+        # Depending on the dataset used and the size of images, we
+        # use 28*28 for the medical images and 32 for CIFAR10 and CIFAR100
         # transforms.Resize((28, 28)),
         transforms.RandomCrop(32, padding=4),
+
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
     transform_test = transforms.Compose([
+        # Applying size 28*28 for medical image scenario
+        # The resize is removed if not medical dataset
         # transforms.Resize((28, 28)),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
+    # Introducing this method to ensure that the testloader is deterministic
+    # Check - https://pytorch.org/docs/stable/notes/randomness.html#dataloader
     def seed_worker(worker_id):
         worker_seed = random_seed
         np.random.seed(worker_seed)
         random.seed(worker_seed)
 
+    # The following two lines are needed to make testloader deterministic
     g = torch.Generator()
     g.manual_seed(random_seed)
 
     trainset = RotationLoader(is_train=True, transform=transform_test)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=Config.batch_size, shuffle=True, num_workers=Config.no_of_workers)
+    trainloader = torch.utils.data.DataLoader(trainset,
+    batch_size=Config.batch_size, shuffle=True, num_workers=Config.no_of_workers)
 
     testset = RotationLoader(is_train=False,  transform=transform_test)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=Config.batch_size, shuffle=False, num_workers=Config.no_of_workers, worker_init_fn=seed_worker,generator=g)
+    testloader = torch.utils.data.DataLoader(testset,
+    batch_size=Config.batch_size, shuffle=False,
+    num_workers=Config.no_of_workers, worker_init_fn=seed_worker,generator=g)
 
     # Model
     print('==> Building model..')
     net = ResNet18()
+    # Predicting only 4 rotation angles
     net.linear = nn.Linear(512, 4)
     # net.linear = nn.Linear(25088, 4) # For 224 * 224 Input sized image
     net = net.to(device)
 
     if device == 'cuda':
         net = torch.nn.DataParallel(net)
+        # cudnn.benchmark = True - # Remove for reproducibility,
+        # might lower model performance,
+        # see https://pytorch.org/docs/stable/notes/randomness.html
 
     # Training hyperparameters
     criterion = nn.CrossEntropyLoss(reduction='none')
