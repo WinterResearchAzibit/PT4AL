@@ -20,6 +20,8 @@ downstream_classification_classes = 10 # Number of classes in the classification
 # Initials in the files saved from running rotation.py
 rotation_saved_file = 'CIFAR10_2023-01-08 20:23:12.648987'
 
+run_active_confusion_true_or_false = True # Either run ActiveConfusion or PT4AL for cold start
+
 transform_train = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
