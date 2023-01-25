@@ -25,8 +25,8 @@ import pandas as pd
 import Config as Config
 import numpy as np
 
-random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
-DATASET_NAME = 'CIFAR10'
+random_seeds = [100] #[100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+DATASET_NAME = 'cifar10'
 TOTAL_EPOCHS = Config.pretraining_epochs
 file_name = datetime.now()
 
@@ -43,7 +43,7 @@ for random_seed in random_seeds:
     # Data
     print('==> Preparing data..')
     transform_train = transforms.Compose([
-        # transforms.Resize((224, 224)),
+        # transforms.Resize((28, 28)),
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
@@ -51,7 +51,7 @@ for random_seed in random_seeds:
     ])
 
     transform_test = transforms.Compose([
-        # transforms.Resize((224, 224)),
+        # transforms.Resize((28, 28)),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])

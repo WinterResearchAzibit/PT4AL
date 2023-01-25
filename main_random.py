@@ -17,17 +17,20 @@ from models import *
 from utils import progress_bar, makeDeterministic
 from loader import Loader, Loader2
 import numpy as np
+import pandas as pd
 import Config as Config
+from datetime import datetime
 
-random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
-
+random_seeds = [40] #[100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
+file_name_with_date = datetime.now()
 for random_seed in random_seeds:
 
     # Make experiment deterministic
     makeDeterministic(random_seed)
 
     # Try all these samples
-    list_of_no_of_samples = [100, 200, 500, 1000, 5000]
+    list_of_no_of_samples = [1000, 5000] #[100, 200, 500, 1000, 5000]
 
     # Select number of samples for random case
     for number_of_samples_to_select in list_of_no_of_samples:
@@ -44,18 +47,20 @@ for random_seed in random_seeds:
         # Data
         print('==> Preparing data..')
         transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
+            transforms.Resize((28, 28)),
+            # transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
         transform_test = transforms.Compose([
+            transforms.Resize((28, 28)),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        indices = list(range(50000))
+        indices = list(range(11959))
         random.shuffle(indices)
         labeled_set = indices[:number_of_samples_to_select]
 
@@ -76,6 +81,7 @@ for random_seed in random_seeds:
         # Model
         print('==> Building model..')
         net = ResNet18()
+        net.linear = nn.Linear(512, 8)
         net = net.to(device)
 
         if device == 'cuda':

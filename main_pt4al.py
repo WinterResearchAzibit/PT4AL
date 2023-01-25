@@ -24,7 +24,7 @@ active_confusion_true_or_false = True #epoch = 0
 file_extra_info = 'conf' if active_confusion_true_or_false else 'loss'
 random_seeds = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
 result_df = pd.DataFrame({}, columns = ['random_seed', 'number_of_samples_to_select', 'saved_train_acc', 'saved_train_loss', 'best_acc', 'best_test_loss'])
-file_name_with_date = datetime.now()
+file_name_with_date = f"{datetime.now()}_{str(active_confusion_true_or_false)}"
 
 for random_seed in random_seeds:
 
@@ -53,6 +53,7 @@ for random_seed in random_seeds:
         # Data
         print('==> Preparing data..')
         transform_train = transforms.Compose([
+            # transforms.Resize((28, 28)),
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -60,17 +61,21 @@ for random_seed in random_seeds:
         ])
 
         transform_test = transforms.Compose([
+            # transforms.Resize((28, 28)),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        epoch_to_use = 0 if active_confusion_true_or_false else Config.pretraining_epochs - 1
+        # epoch_to_use = 0 if active_confusion_true_or_false else Config.pretraining_epochs - 1
+        epoch_to_use = Config.pretraining_epochs - 1
         all_samples = get_selected_items(result_file, epoch_to_use)
 
         # Select the number of samples needed and uniform selection ratio
         range_to_check = 50000 if active_confusion_true_or_false else 5000
+        # range_to_check = 11959 if active_confusion_true_or_false else 1200
+        range_to_check = max(number_of_samples_to_select, range_to_check)
         uniform_selection_ratio = int(range_to_check / number_of_samples_to_select)
-        selected_samples = all_samples[:range_to_check][::uniform_selection_ratio]
+        selected_samples = all_samples[:range_to_check][::uniform_selection_ratio][:number_of_samples_to_select]
 
         # Collect the Distribution of the selected data
         class_dist = {}
@@ -99,7 +104,9 @@ for random_seed in random_seeds:
         # Model
         print('==> Building model..')
         net = ResNet18()
+        # net.linear = nn.Linear(512, 10)
         net = net.to(device)
+
 
         if device == 'cuda':
             net = torch.nn.DataParallel(net)
@@ -188,7 +195,6 @@ for random_seed in random_seeds:
                 best_test_loss = test_loss_result
                 saved_train_acc = best_train_acc
                 saved_train_loss = best_train_loss
-
 
         print(f"Now experimenting with random_seed {random_seed} with {number_of_samples_to_select} selected samples on Active Confusion: {active_confusion_true_or_false}")
         for epoch in range(start_epoch, start_epoch+Config.downstream_epochs):
